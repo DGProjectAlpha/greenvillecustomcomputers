@@ -157,11 +157,20 @@ a:hover {
   height: var(--header-h);
   display: flex;
   align-items: center;
-  background: rgba(10, 10, 15, 0.72);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  overflow: visible;
+  background: rgba(10, 10, 15, 0.86);
   border-bottom: 1px solid transparent;
   transition: border-color 0.3s var(--ease), background 0.3s var(--ease);
+}
+
+.site-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .site-header.is-scrolled {
@@ -290,8 +299,15 @@ a:hover {
 
 .site-nav {
   position: fixed;
-  inset: var(--header-h) 0 0 0;
-  background: rgba(10, 10, 15, 0.97);
+  top: var(--header-h);
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 150;
+  width: 100%;
+  height: calc(100dvh - var(--header-h));
+  overflow-y: auto;
+  background: #0a0a0f;
   padding: 1.5rem var(--gutter) 2rem;
   transform: translateX(100%);
   visibility: hidden;
@@ -736,7 +752,14 @@ a:hover {
 
   .site-nav {
     position: static;
-    inset: auto;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    left: auto;
+    z-index: auto;
+    width: auto;
+    height: auto;
+    overflow: visible;
     background: none;
     padding: 0;
     transform: none;
