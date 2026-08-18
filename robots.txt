@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://dgprojectalpha.github.io/greenvillecustomcomputers/sitemap.xml
+Sitemap: https://greenvillecustomcomputers.com/sitemap.xml
