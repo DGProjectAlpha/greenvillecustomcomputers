@@ -1,0 +1,16 @@
+{
+  "name": "Greenville Custom Computers",
+  "short_name": "GCC",
+  "description": "Custom PC builds and computer repair in Greenville, SC.",
+  "start_url": "./",
+  "display": "browser",
+  "background_color": "#0a0a0f",
+  "theme_color": "#0a0a0f",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
