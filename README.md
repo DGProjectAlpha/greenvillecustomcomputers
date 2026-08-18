@@ -16,7 +16,9 @@ Then open [http://localhost:8080](http://localhost:8080).
 
 ## GitHub Pages
 
-In the repository settings, enable GitHub Pages from the `main` branch, serving from the root (`/`). The site is ready to publish as-is.
+Live site: [https://greenvillecustomcomputers.com](https://greenvillecustomcomputers.com)
+
+Published from the `main` branch, serving `/`, with custom domain `greenvillecustomcomputers.com`.
 
 ## Structure
 
