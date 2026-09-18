@@ -3,6 +3,7 @@
 
   var ACCENTS = ["teal", "azure", "amber", "rose", "forest"];
   var ACCENT_KEY = "gcc-accent";
+  var THEME_KEY = "gcc-theme";
 
   var year = document.getElementById("year");
   if (year) year.textContent = String(new Date().getFullYear());
@@ -17,13 +18,57 @@
   var snapRoot = document.querySelector(".snap-root");
   var snapTrack = document.querySelector(".snap-track");
   var themeSwatch = document.querySelector(".theme-swatch");
-  var themeMeta = document.getElementById("meta-theme-color");
+  var themeModeBtn = document.querySelector(".theme-mode");
+  var themeModeLabel = document.querySelector(".theme-mode-label");
   var lastFocused = null;
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var mobileQuery = window.matchMedia("(max-width: 767px)");
+  var systemDarkQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
-  /* Theme color cycle
+  /* Theme color cycle + light/dark mode
      ======================================================================== */
+
+  function systemTheme() {
+    return systemDarkQuery.matches ? "dark" : "light";
+  }
+
+  function currentTheme() {
+    var theme = document.documentElement.getAttribute("data-theme");
+    return theme === "dark" ? "dark" : "light";
+  }
+
+  function syncThemeModeLabel() {
+    var theme = currentTheme();
+    if (themeModeLabel) themeModeLabel.textContent = theme;
+    if (themeModeBtn) {
+      themeModeBtn.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
+      themeModeBtn.setAttribute(
+        "aria-label",
+        theme === "dark" ? "Dark mode selected. Tap for light mode" : "Light mode selected. Tap for dark mode"
+      );
+      themeModeBtn.title = theme === "dark" ? "Dark mode" : "Light mode";
+    }
+  }
+
+  function applyTheme(theme, persist) {
+    theme = theme === "dark" ? "dark" : "light";
+    document.documentElement.setAttribute("data-theme", theme);
+    if (persist) {
+      try {
+        localStorage.setItem(THEME_KEY, theme);
+      } catch (err) {}
+    }
+    syncThemeModeLabel();
+    syncThemeMeta();
+  }
+
+  function resolveInitialTheme() {
+    try {
+      var stored = localStorage.getItem(THEME_KEY);
+      if (stored === "light" || stored === "dark") return stored;
+    } catch (err) {}
+    return systemTheme();
+  }
 
   function applyAccent(name) {
     if (ACCENTS.indexOf(name) === -1) name = ACCENTS[0];
@@ -39,11 +84,19 @@
     applyAccent("teal");
   }
 
+  applyTheme(resolveInitialTheme(), false);
+
   if (themeSwatch) {
     themeSwatch.addEventListener("click", function () {
       var current = document.body.getAttribute("data-accent") || "teal";
       var next = ACCENTS[(ACCENTS.indexOf(current) + 1) % ACCENTS.length];
       applyAccent(next);
+    });
+  }
+
+  if (themeModeBtn) {
+    themeModeBtn.addEventListener("click", function () {
+      applyTheme(currentTheme() === "dark" ? "light" : "dark", true);
     });
   }
 
@@ -55,8 +108,19 @@
   }
 
   syncThemeMeta();
-  if (window.matchMedia) {
-    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", syncThemeMeta);
+  if (systemDarkQuery) {
+    var onSystemThemeChange = function () {
+      try {
+        var stored = localStorage.getItem(THEME_KEY);
+        if (stored === "light" || stored === "dark") return;
+      } catch (err) {}
+      applyTheme(systemTheme(), false);
+    };
+    if (typeof systemDarkQuery.addEventListener === "function") {
+      systemDarkQuery.addEventListener("change", onSystemThemeChange);
+    } else if (typeof systemDarkQuery.addListener === "function") {
+      systemDarkQuery.addListener(onSystemThemeChange);
+    }
   }
 
   /* Mobile nav
