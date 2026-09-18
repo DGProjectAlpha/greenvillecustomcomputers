@@ -1313,16 +1313,26 @@ body:not(:has(.snap-root)) .section-kicker {
   }
 
   .process-carousel {
-    gap: 0.45rem;
+    gap: 0.35rem;
+    padding-inline: 0.1rem;
   }
 
   .process-arrow {
-    width: 2.65rem;
-    height: 2.65rem;
+    width: 2.55rem;
+    height: 2.55rem;
+    flex-shrink: 0;
+  }
+
+  .process-stage {
+    min-width: 0;
   }
 
   .process-stack {
-    height: 16.5rem;
+    height: 17rem;
+  }
+
+  .process-step {
+    padding: 1.2rem 1.15rem 1.3rem;
   }
 
   .service-card {
