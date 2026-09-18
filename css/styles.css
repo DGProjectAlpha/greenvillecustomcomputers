@@ -1373,26 +1373,26 @@ body:not(:has(.snap-root)) .section-kicker {
   }
 
   .process-arrow {
-    width: 2.4rem;
-    height: 2.4rem;
+    width: 2.35rem;
+    height: 2.35rem;
     flex-shrink: 0;
   }
 
   .process-stage {
-    width: min(100%, 18.5rem);
+    width: min(100%, 17.5rem);
     min-width: 0;
   }
 
   .process-stack {
-    height: 14.5rem;
+    min-height: 12.25rem;
   }
 
   .process-step {
-    padding: 1.05rem 1.05rem 1.15rem;
+    padding: 0.95rem 1rem 1.05rem;
   }
 
   .process-step p {
-    font-size: 0.9rem;
+    font-size: 0.88rem;
   }
 
   .service-card {
@@ -1415,7 +1415,7 @@ body:not(:has(.snap-root)) .section-kicker {
     padding: 0.75rem;
   }
 
-  .process-stack { height: 13rem; }
+  .process-stack { min-height: 11rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
