@@ -48,9 +48,10 @@
   }
 
   function syncThemeMeta() {
-    if (!themeMeta) return;
+    var lightMeta = document.getElementById("meta-theme-color");
     var styles = getComputedStyle(document.documentElement);
-    themeMeta.setAttribute("content", styles.getPropertyValue("--theme-meta").trim() || "#e8eef5");
+    var value = styles.getPropertyValue("--theme-meta").trim() || "#e8eef5";
+    if (lightMeta) lightMeta.setAttribute("content", value);
   }
 
   syncThemeMeta();
