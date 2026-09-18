@@ -4,8 +4,8 @@
   "description": "Custom PC builds and computer repair in Greenville, SC.",
   "start_url": "./",
   "display": "browser",
-  "background_color": "#0a0a0f",
-  "theme_color": "#0a0a0f",
+  "background_color": "#e8eef5",
+  "theme_color": "#e8eef5",
   "icons": [
     {
       "src": "favicon.svg",
