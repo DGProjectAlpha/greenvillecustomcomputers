@@ -1402,7 +1402,7 @@ body:not(:has(.snap-root)) .section-kicker {
     padding: 0.75rem;
   }
 
-  .process-stack { height: 15rem; }
+  .process-stack { height: 13rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
