@@ -2,11 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Greenville Custom Computers | Custom PC Builds &amp; Repair in Greenville, SC</title>
   <meta name="description" content="Greenville Custom Computers is a local Greenville, SC shop for custom PC builds, assembly, diagnosis, and computer repair — priced fairly, with a learning-first approach.">
   <link rel="canonical" href="https://greenvillecustomcomputers.com/">
-  <meta name="theme-color" content="#e8eef5" id="meta-theme-color">
+  <meta name="theme-color" content="#e8eef5" media="(prefers-color-scheme: light)" id="meta-theme-color">
+  <meta name="theme-color" content="#0d1218" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="robots" content="index, follow">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="en_US">
@@ -24,7 +27,20 @@
   <link rel="apple-touch-icon" href="assets/images/apple-touch-icon.png">
   <link rel="manifest" href="site.webmanifest">
   <link rel="preload" href="fonts/outfit-latin-wght.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/styles.css?v=ux10">
+  <link rel="stylesheet" href="css/styles.css?v=ux14">
+  <script>
+    (function () {
+      try {
+        var stored = localStorage.getItem("gcc-theme");
+        var theme = stored === "light" || stored === "dark"
+          ? stored
+          : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", theme);
+      } catch (err) {
+        document.documentElement.setAttribute("data-theme", "light");
+      }
+    })();
+  </script>
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -53,7 +69,12 @@
 
   <header class="site-header">
     <div class="wrap header-inner">
-      <button class="theme-swatch" type="button" aria-label="Cycle theme color" title="Cycle theme color"></button>
+      <div class="theme-controls">
+        <button class="theme-swatch" type="button" aria-label="Cycle theme color" title="Cycle theme color"></button>
+        <button class="theme-mode" type="button" aria-label="Color mode" title="Toggle light and dark mode">
+          <span class="theme-mode-label">light</span>
+        </button>
+      </div>
 
       <a class="logo" href="#home">
         <span class="logo-text">
@@ -317,6 +338,6 @@
     </div>
   </main>
 
-  <script src="js/main.js?v=ux10" defer></script>
+  <script src="js/main.js?v=ux14" defer></script>
 </body>
 </html>

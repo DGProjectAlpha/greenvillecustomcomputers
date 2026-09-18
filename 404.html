@@ -2,19 +2,40 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Page not found | Greenville Custom Computers</title>
   <meta name="description" content="That page does not exist. Return to Greenville Custom Computers for custom PC builds and computer repair in Greenville, SC.">
   <meta name="robots" content="noindex">
-  <meta name="theme-color" content="#e8eef5" id="meta-theme-color">
+  <meta name="theme-color" content="#e8eef5" media="(prefers-color-scheme: light)" id="meta-theme-color">
+  <meta name="theme-color" content="#0d1218" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preload" href="fonts/outfit-latin-wght.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=ux14">
+  <script>
+    (function () {
+      try {
+        var stored = localStorage.getItem("gcc-theme");
+        var theme = stored === "light" || stored === "dark"
+          ? stored
+          : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", theme);
+      } catch (err) {
+        document.documentElement.setAttribute("data-theme", "light");
+      }
+    })();
+  </script>
 </head>
 <body class="page-bg" data-accent="teal">
   <header class="site-header">
     <div class="wrap header-inner">
-      <button class="theme-swatch" type="button" aria-label="Cycle theme color" title="Cycle theme color"></button>
+      <div class="theme-controls">
+        <button class="theme-swatch" type="button" aria-label="Cycle theme color" title="Cycle theme color"></button>
+        <button class="theme-mode" type="button" aria-label="Color mode" title="Toggle light and dark mode">
+          <span class="theme-mode-label">light</span>
+        </button>
+      </div>
       <a class="logo" href="index.html">
         <span class="logo-text">
           <strong>Greenville Custom Computers</strong>
