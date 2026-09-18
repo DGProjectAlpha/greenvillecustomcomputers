@@ -331,8 +331,9 @@ a:hover {
   color: var(--ink);
   text-decoration: none;
   text-align: center;
-  max-width: min(70%, 22rem);
+  max-width: min(52%, 18rem);
   z-index: 1;
+  pointer-events: auto;
 }
 
 .logo:hover {
@@ -364,6 +365,8 @@ a:hover {
 }
 
 .nav-toggle {
+  position: relative;
+  z-index: 3;
   width: 2.65rem;
   height: 2.65rem;
   margin-left: auto;
@@ -1146,7 +1149,7 @@ body:not(:has(.snap-root)) .section-kicker {
   }
 
   .logo {
-    max-width: min(42%, 24rem);
+    max-width: min(36%, 20rem);
   }
 
   .nav-toggle,
