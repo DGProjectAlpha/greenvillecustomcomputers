@@ -6,21 +6,22 @@
   <title>Page not found | Greenville Custom Computers</title>
   <meta name="description" content="That page does not exist. Return to Greenville Custom Computers for custom PC builds and computer repair in Greenville, SC.">
   <meta name="robots" content="noindex">
-  <meta name="theme-color" content="#e8eef5">
+  <meta name="theme-color" content="#e8eef5" id="meta-theme-color">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preload" href="fonts/outfit-latin-wght.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/styles.css">
 </head>
-<body class="page-bg">
+<body class="page-bg" data-accent="teal">
   <header class="site-header">
     <div class="wrap header-inner">
+      <button class="theme-swatch" type="button" aria-label="Cycle theme color" title="Cycle theme color"></button>
       <a class="logo" href="index.html">
-        <img class="logo-mark" src="favicon.svg" width="36" height="36" alt="">
         <span class="logo-text">
-          <strong><span class="logo-short">GCC</span><span class="logo-long">Greenville Custom Computers</span></strong>
+          <strong>Greenville Custom Computers</strong>
           <span>Greenville, SC</span>
         </span>
       </a>
+      <span aria-hidden="true" style="width:2.65rem;height:2.65rem;"></span>
     </div>
   </header>
   <main id="main" class="section">
@@ -33,5 +34,6 @@
       </p>
     </div>
   </main>
+  <script src="js/main.js" defer></script>
 </body>
 </html>
