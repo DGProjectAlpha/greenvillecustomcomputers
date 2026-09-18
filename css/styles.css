@@ -262,6 +262,10 @@ a:hover {
   pointer-events: none;
 }
 
+body.nav-open .site-header {
+  z-index: 160;
+}
+
 .site-header .wrap,
 .site-header .header-inner,
 .site-header a,
