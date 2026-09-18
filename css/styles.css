@@ -1347,6 +1347,10 @@ body:not(:has(.snap-root)) .section-kicker {
     touch-action: pan-y;
   }
 
+  .snap-root.is-pager.is-pulling {
+    touch-action: none;
+  }
+
   .snap-root.is-pager .snap-track {
     height: 100%;
     transition: transform 0.55s var(--ease);

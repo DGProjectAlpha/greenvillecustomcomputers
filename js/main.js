@@ -156,6 +156,8 @@
   var touchLastT = 0;
   var touchVelocity = 0;
   var pullPx = 0;
+  var pullDir = 0;
+  var pullMaxAbs = 0;
   var pulling = false;
   var desktopScrollRaf = 0;
 
@@ -175,27 +177,33 @@
   function panelCanScroll(panel, dir) {
     if (!panel) return false;
     var max = panelOverflow(panel);
-    if (max <= 2) return false;
-    if (dir > 0) return panel.scrollTop < max - 2;
-    if (dir < 0) return panel.scrollTop > 2;
+    // Tiny overflow from padding/subpixels should not trap swipes
+    if (max <= 8) return false;
+    if (dir > 0) return panel.scrollTop < max - 4;
+    if (dir < 0) return panel.scrollTop > 4;
     return false;
   }
 
   function panelFillsViewport(panel) {
-    return panelOverflow(panel) <= 2;
+    return panelOverflow(panel) <= 8;
   }
 
   function atPanelEdge(panel, dir) {
     if (!panel) return true;
     if (panelFillsViewport(panel)) return true;
     var max = panelOverflow(panel);
-    if (dir > 0) return panel.scrollTop >= max - 2;
-    if (dir < 0) return panel.scrollTop <= 2;
+    if (dir > 0) return panel.scrollTop >= max - 4;
+    if (dir < 0) return panel.scrollTop <= 4;
     return false;
   }
 
   function baseTrackTranslate(index) {
-    return "translate3d(0, " + (-100 * index) + "%, 0)";
+    // Use viewport units — % is relative to the track box and can fail to move panels
+    return "translate3d(0, " + (-index * 100) + "dvh, 0)";
+  }
+
+  function maxPullDistance() {
+    return Math.min(160, window.innerHeight * 0.24);
   }
 
   function clearPanelStretch() {
@@ -205,28 +213,47 @@
       panel.style.transform = "";
       panel.style.transformOrigin = "";
     });
+    if (snapRoot) snapRoot.classList.remove("is-pulling");
   }
 
   function applyPullVisual(dir, rawPull) {
     if (!snapTrack) return;
-    var maxPull = Math.min(140, window.innerHeight * 0.22);
-    var resisted = Math.sign(rawPull) * Math.min(Math.abs(rawPull) * 0.42, maxPull);
+    var maxPull = maxPullDistance();
+    var resisted = Math.sign(rawPull) * Math.min(Math.abs(rawPull) * 0.5, maxPull);
     var progress = Math.min(Math.abs(resisted) / maxPull, 1);
     pullPx = resisted;
+    pullDir = dir;
 
+    if (snapRoot) snapRoot.classList.add("is-pulling");
     snapTrack.classList.add("is-dragging");
     snapTrack.style.transitionDuration = "0ms";
     snapTrack.style.transform =
-      "translate3d(0, calc(" + (-100 * activeIndex) + "% + " + -resisted + "px), 0)";
+      "translate3d(0, calc(" + (-activeIndex * 100) + "dvh + " + -resisted + "px), 0)";
 
     var panel = currentPanel();
     if (!panel) return;
     panel.classList.add("is-stretching");
     panel.setAttribute("data-stretch", dir > 0 ? "next" : "prev");
     panel.style.transformOrigin = dir > 0 ? "50% 0%" : "50% 100%";
-    var scale = 1 + progress * 0.045;
-    var shift = (dir > 0 ? -1 : 1) * progress * 10;
+    var scale = 1 + progress * 0.05;
+    var shift = (dir > 0 ? -1 : 1) * progress * 12;
     panel.style.transform = "translateY(" + shift + "px) scaleY(" + scale + ")";
+  }
+
+  function decideCommit(finalDy) {
+    var dir = pullDir || (finalDy > 0 ? 1 : finalDy < 0 ? -1 : 0);
+    if (!dir) return 0;
+    if (activeIndex + dir < 0 || activeIndex + dir >= panels.length) return 0;
+
+    var distance = Math.max(Math.abs(finalDy || 0), pullMaxAbs);
+    var progress = Math.abs(pullPx) / maxPullDistance();
+    var threshold = Math.min(48, window.innerHeight * 0.07);
+    var flick = Math.abs(touchVelocity) > 0.35;
+
+    if (progress >= 0.28 || distance >= threshold || (flick && distance > 20)) {
+      return dir;
+    }
+    return 0;
   }
 
   function settlePull(commitDir) {
@@ -235,14 +262,18 @@
     snapTrack.classList.remove("is-dragging");
     snapTrack.style.transitionDuration = reduceMotion ? "0ms" : "520ms";
 
-    if (commitDir) {
-      goToIndex(activeIndex + commitDir, true);
+    var nextDir = commitDir || 0;
+    pullPx = 0;
+    pulling = false;
+    pullMaxAbs = 0;
+    pullDir = 0;
+
+    if (nextDir) {
+      goToIndex(activeIndex + nextDir, true);
       return;
     }
 
     snapTrack.style.transform = baseTrackTranslate(activeIndex);
-    pullPx = 0;
-    pulling = false;
   }
 
   function animateDesktopScroll(targetTop) {
@@ -293,6 +324,8 @@
     activeIndex = index;
     setActiveSection(sectionIdAt(index));
     pullPx = 0;
+    pullDir = 0;
+    pullMaxAbs = 0;
     pulling = false;
     clearPanelStretch();
     onChromeScroll();
@@ -302,6 +335,8 @@
       if (snapTrack) {
         snapTrack.classList.remove("is-dragging");
         snapTrack.style.transitionDuration = reduceMotion || smooth === false ? "0ms" : "550ms";
+        // Force style flush so transition runs from the dragged offset
+        void snapTrack.offsetWidth;
         snapTrack.style.transform = baseTrackTranslate(index);
       }
       window.setTimeout(function () {
@@ -324,6 +359,7 @@
     if (!snapRoot || !snapTrack) return;
     snapRoot.classList.toggle("is-pager", on);
     snapRoot.classList.remove("is-animating");
+    snapRoot.classList.remove("is-pulling");
     if (on) {
       snapTrack.style.transitionDuration = "0ms";
       snapTrack.style.transform = baseTrackTranslate(activeIndex);
@@ -343,10 +379,6 @@
     onChromeScroll();
   }
 
-  function commitThreshold() {
-    return Math.min(92, window.innerHeight * 0.14);
-  }
-
   if (snapRoot && panels.length) {
     snapRoot.addEventListener(
       "touchstart",
@@ -357,6 +389,8 @@
         touchActive = true;
         pulling = false;
         pullPx = 0;
+        pullDir = 0;
+        pullMaxAbs = 0;
         touchStartY = event.touches[0].clientY;
         touchStartX = event.touches[0].clientX;
         touchLastY = touchStartY;
@@ -395,58 +429,46 @@
 
         // At edge / full-screen panel: rubber-band toward next/prev
         if (!atPanelEdge(panel, dir) && !pulling) return;
-        if (activeIndex + dir < 0 || activeIndex + dir >= panels.length) {
-          // Soft resistance at ends
-          if (event.cancelable) event.preventDefault();
-          applyPullVisual(dir, dy * 0.35);
-          pulling = true;
-          return;
-        }
 
         if (event.cancelable) event.preventDefault();
         pulling = true;
+        pullMaxAbs = Math.max(pullMaxAbs, Math.abs(dy));
+
+        if (activeIndex + dir < 0 || activeIndex + dir >= panels.length) {
+          applyPullVisual(dir, dy * 0.3);
+          return;
+        }
+
         applyPullVisual(dir, dy);
       },
       { passive: false }
     );
 
-    snapRoot.addEventListener(
-      "touchend",
-      function (event) {
-        if (!isPager() || !touchActive) return;
-        touchActive = false;
-        if (event.target.closest && event.target.closest("[data-process-carousel]")) {
-          settlePull(0);
-          return;
-        }
+    function endPullGesture(event) {
+      if (!isPager() || !touchActive) return;
+      touchActive = false;
 
-        if (!pulling) {
-          clearPanelStretch();
-          return;
-        }
+      if (event && event.target && event.target.closest && event.target.closest("[data-process-carousel]")) {
+        settlePull(0);
+        return;
+      }
 
-        var touch = event.changedTouches[0];
-        var dy = touch ? touchStartY - touch.clientY : pullPx / 0.42;
-        var dir = dy > 0 ? 1 : dy < 0 ? -1 : 0;
-        var distance = Math.abs(dy);
-        var flick = Math.abs(touchVelocity) > 0.55;
-        var shouldCommit =
-          dir &&
-          activeIndex + dir >= 0 &&
-          activeIndex + dir < panels.length &&
-          (distance >= commitThreshold() || (flick && distance > 36));
+      if (!pulling) {
+        clearPanelStretch();
+        return;
+      }
 
-        settlePull(shouldCommit ? dir : 0);
-      },
-      { passive: true }
-    );
+      var touch = event && event.changedTouches ? event.changedTouches[0] : null;
+      var dy = touch ? touchStartY - touch.clientY : pullMaxAbs * (pullDir || 1);
+      settlePull(decideCommit(dy));
+    }
 
+    snapRoot.addEventListener("touchend", endPullGesture, { passive: true });
     snapRoot.addEventListener(
       "touchcancel",
-      function () {
-        if (!isPager()) return;
-        touchActive = false;
-        settlePull(0);
+      function (event) {
+        // iOS can cancel mid-gesture; still commit if the user already pulled far enough
+        endPullGesture(event);
       },
       { passive: true }
     );
