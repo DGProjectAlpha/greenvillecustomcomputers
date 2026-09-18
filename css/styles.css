@@ -1006,6 +1006,42 @@ body:not(:has(.snap-root)) .section-kicker {
   }
 }
 
+/* Mobile: keep each panel a single slide; compress if needed */
+@media (max-width: 767px) {
+  .panel {
+    height: auto;
+    min-height: 100dvh;
+    min-height: 100svh;
+    justify-content: flex-start;
+    padding-top: calc(var(--header-h) + 1rem);
+    padding-bottom: 2rem;
+  }
+
+  .hero .panel-inner,
+  .hero-grid {
+    min-height: calc(100svh - var(--header-h) - 3rem);
+  }
+
+  .hero-grid {
+    align-content: center;
+  }
+
+  .schematic-frame {
+    width: min(100%, 18.5rem);
+    padding: 0.75rem;
+  }
+
+  .process-step,
+  .service-card {
+    padding: 1.05rem 1.1rem 1.15rem;
+  }
+
+  .process-step p,
+  .service-card p {
+    font-size: 0.92rem;
+  }
+}
+
 @media (max-height: 720px) and (min-width: 768px) {
   .panel {
     justify-content: flex-start;
