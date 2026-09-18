@@ -360,6 +360,8 @@
     snapRoot.classList.toggle("is-pager", on);
     snapRoot.classList.remove("is-animating");
     snapRoot.classList.remove("is-pulling");
+    document.documentElement.classList.toggle("pager-lock", on);
+    document.body.classList.toggle("pager-lock", on);
     if (on) {
       snapTrack.style.transitionDuration = "0ms";
       snapTrack.style.transform = baseTrackTranslate(activeIndex);
@@ -411,21 +413,36 @@
         var x = event.touches[0].clientX;
         var dy = touchStartY - y;
         var dx = touchStartX - x;
-        if (Math.abs(dx) > Math.abs(dy) && !pulling) return;
+        var frameDelta = touchLastY - y;
+
+        if (Math.abs(dx) > Math.abs(dy) && !pulling) {
+          touchLastY = y;
+          return;
+        }
 
         var now = performance.now();
         var dt = Math.max(1, now - touchLastT);
-        touchVelocity = (touchLastY - y) / dt;
-        touchLastY = y;
+        touchVelocity = frameDelta / dt;
         touchLastT = now;
 
-        var dir = dy > 0 ? 1 : dy < 0 ? -1 : 0;
+        var dir = dy > 0 ? 1 : dy < 0 ? -1 : frameDelta > 0 ? 1 : frameDelta < 0 ? -1 : 0;
         var panel = currentPanel();
-        if (!dir) return;
 
-        if (!pulling && panelCanScroll(panel, dir)) {
-          return;
+        // Own the gesture: manually scroll overflow content, otherwise page-pull
+        if (!pulling && panel && panelCanScroll(panel, dir || (frameDelta > 0 ? 1 : -1))) {
+          if (event.cancelable) event.preventDefault();
+          panel.scrollTop += frameDelta;
+          touchLastY = y;
+          // If this frame hits the edge, fall through into pull on next move
+          if (panelCanScroll(panel, frameDelta > 0 ? 1 : -1)) {
+            return;
+          }
+          // Reached edge mid-gesture — start rubber-band with remaining intent
+          dir = frameDelta > 0 ? 1 : -1;
         }
+
+        touchLastY = y;
+        if (!dir) return;
 
         // At edge / full-screen panel: rubber-band toward next/prev
         if (!atPanelEdge(panel, dir) && !pulling) return;
@@ -435,7 +452,8 @@
         pullMaxAbs = Math.max(pullMaxAbs, Math.abs(dy));
 
         if (activeIndex + dir < 0 || activeIndex + dir >= panels.length) {
-          applyPullVisual(dir, dy * 0.3);
+          // Soft resistance only — never let the browser refresh
+          applyPullVisual(dir, dy * 0.28);
           return;
         }
 

@@ -1341,14 +1341,19 @@ body:not(:has(.snap-root)) .section-kicker {
    ========================================================================== */
 
 @media (max-width: 767px) {
+  html.pager-lock,
+  html.pager-lock body,
+  body.pager-lock {
+    overscroll-behavior-y: none;
+    overscroll-behavior: none;
+  }
+
   .snap-root.is-pager {
     overflow: hidden;
     scroll-snap-type: none;
-    touch-action: pan-y;
-  }
-
-  .snap-root.is-pager.is-pulling {
+    /* Own all vertical gestures so the browser cannot pull-to-refresh */
     touch-action: none;
+    overscroll-behavior: none;
   }
 
   .snap-root.is-pager .snap-track {
@@ -1366,7 +1371,7 @@ body:not(:has(.snap-root)) .section-kicker {
     min-height: 100%;
     max-height: 100%;
     overflow-y: auto;
-    overscroll-behavior: contain;
+    overscroll-behavior: none;
     -webkit-overflow-scrolling: touch;
     scroll-snap-align: none;
     justify-content: flex-start;
@@ -1374,6 +1379,7 @@ body:not(:has(.snap-root)) .section-kicker {
     padding-bottom: 2rem;
     transform-origin: 50% 50%;
     transition: transform 0.2s var(--ease);
+    touch-action: none;
   }
 
   .snap-root.is-pager .panel.is-stretching {
