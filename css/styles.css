@@ -661,8 +661,13 @@ body.nav-open .site-header {
   overflow-x: hidden;
   overflow-y: auto;
   scroll-snap-type: y mandatory;
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
   overscroll-behavior-y: contain;
+}
+
+.snap-root.is-animating {
+  scroll-snap-type: none;
+  pointer-events: none;
 }
 
 .snap-track {
@@ -1348,6 +1353,10 @@ body:not(:has(.snap-root)) .section-kicker {
     will-change: transform;
   }
 
+  .snap-root.is-pager .snap-track.is-dragging {
+    transition: none;
+  }
+
   .snap-root.is-pager .panel {
     height: 100%;
     min-height: 100%;
@@ -1359,6 +1368,38 @@ body:not(:has(.snap-root)) .section-kicker {
     justify-content: flex-start;
     padding-top: calc(var(--header-h) + 1rem);
     padding-bottom: 2rem;
+    transform-origin: 50% 50%;
+    transition: transform 0.2s var(--ease);
+  }
+
+  .snap-root.is-pager .panel.is-stretching {
+    transition: none;
+    will-change: transform;
+  }
+
+  .snap-root.is-pager .panel.is-stretching::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    width: 2.75rem;
+    height: 0.28rem;
+    border-radius: 999px;
+    background: rgba(var(--accent-rgb), 0.5);
+    box-shadow: 0 0 0 6px rgba(var(--accent-rgb), 0.14);
+    transform: translateX(-50%);
+    pointer-events: none;
+    opacity: 0.95;
+    z-index: 5;
+  }
+
+  .snap-root.is-pager .panel.is-stretching[data-stretch="next"]::after {
+    top: calc(var(--header-h) + 0.35rem);
+    bottom: auto;
+  }
+
+  .snap-root.is-pager .panel.is-stretching[data-stretch="prev"]::after {
+    top: auto;
+    bottom: 0.85rem;
   }
 
   .schematic-frame {

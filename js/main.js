@@ -148,13 +148,16 @@
   /* Desktop smooth scroll / mobile pager
      ======================================================================== */
 
-  var edgeArmed = false;
-  var edgeDir = 0;
   var pagerAnimating = false;
+  var touchActive = false;
   var touchStartY = 0;
   var touchStartX = 0;
-  var touchActive = false;
-  var gestureConsumed = false;
+  var touchLastY = 0;
+  var touchLastT = 0;
+  var touchVelocity = 0;
+  var pullPx = 0;
+  var pulling = false;
+  var desktopScrollRaf = 0;
 
   function isPager() {
     return mobileQuery.matches && snapRoot && snapTrack;
@@ -164,55 +167,175 @@
     return panels[activeIndex] || null;
   }
 
+  function panelOverflow(panel) {
+    if (!panel) return 0;
+    return panel.scrollHeight - panel.clientHeight;
+  }
+
   function panelCanScroll(panel, dir) {
     if (!panel) return false;
-    var max = panel.scrollHeight - panel.clientHeight;
+    var max = panelOverflow(panel);
     if (max <= 2) return false;
     if (dir > 0) return panel.scrollTop < max - 2;
     if (dir < 0) return panel.scrollTop > 2;
     return false;
   }
 
+  function panelFillsViewport(panel) {
+    return panelOverflow(panel) <= 2;
+  }
+
+  function atPanelEdge(panel, dir) {
+    if (!panel) return true;
+    if (panelFillsViewport(panel)) return true;
+    var max = panelOverflow(panel);
+    if (dir > 0) return panel.scrollTop >= max - 2;
+    if (dir < 0) return panel.scrollTop <= 2;
+    return false;
+  }
+
+  function baseTrackTranslate(index) {
+    return "translate3d(0, " + (-100 * index) + "%, 0)";
+  }
+
+  function clearPanelStretch() {
+    panels.forEach(function (panel) {
+      panel.classList.remove("is-stretching");
+      panel.removeAttribute("data-stretch");
+      panel.style.transform = "";
+      panel.style.transformOrigin = "";
+    });
+  }
+
+  function applyPullVisual(dir, rawPull) {
+    if (!snapTrack) return;
+    var maxPull = Math.min(140, window.innerHeight * 0.22);
+    var resisted = Math.sign(rawPull) * Math.min(Math.abs(rawPull) * 0.42, maxPull);
+    var progress = Math.min(Math.abs(resisted) / maxPull, 1);
+    pullPx = resisted;
+
+    snapTrack.classList.add("is-dragging");
+    snapTrack.style.transitionDuration = "0ms";
+    snapTrack.style.transform =
+      "translate3d(0, calc(" + (-100 * activeIndex) + "% + " + -resisted + "px), 0)";
+
+    var panel = currentPanel();
+    if (!panel) return;
+    panel.classList.add("is-stretching");
+    panel.setAttribute("data-stretch", dir > 0 ? "next" : "prev");
+    panel.style.transformOrigin = dir > 0 ? "50% 0%" : "50% 100%";
+    var scale = 1 + progress * 0.045;
+    var shift = (dir > 0 ? -1 : 1) * progress * 10;
+    panel.style.transform = "translateY(" + shift + "px) scaleY(" + scale + ")";
+  }
+
+  function settlePull(commitDir) {
+    clearPanelStretch();
+    if (!snapTrack) return;
+    snapTrack.classList.remove("is-dragging");
+    snapTrack.style.transitionDuration = reduceMotion ? "0ms" : "520ms";
+
+    if (commitDir) {
+      goToIndex(activeIndex + commitDir, true);
+      return;
+    }
+
+    snapTrack.style.transform = baseTrackTranslate(activeIndex);
+    pullPx = 0;
+    pulling = false;
+  }
+
+  function animateDesktopScroll(targetTop) {
+    if (!snapRoot) return;
+    if (desktopScrollRaf) {
+      window.cancelAnimationFrame(desktopScrollRaf);
+      desktopScrollRaf = 0;
+    }
+
+    if (reduceMotion) {
+      snapRoot.scrollTop = targetTop;
+      return;
+    }
+
+    var start = snapRoot.scrollTop;
+    var delta = targetTop - start;
+    if (Math.abs(delta) < 1) {
+      snapRoot.scrollTop = targetTop;
+      return;
+    }
+
+    // Mandatory scroll-snap cancels native smooth scroll — disable during tween
+    snapRoot.classList.add("is-animating");
+    var duration = Math.min(900, Math.max(420, Math.abs(delta) * 0.55));
+    var t0 = performance.now();
+
+    function easeOutCubic(t) {
+      return 1 - Math.pow(1 - t, 3);
+    }
+
+    function frame(now) {
+      var p = Math.min(1, (now - t0) / duration);
+      snapRoot.scrollTop = start + delta * easeOutCubic(p);
+      if (p < 1) {
+        desktopScrollRaf = window.requestAnimationFrame(frame);
+      } else {
+        desktopScrollRaf = 0;
+        snapRoot.scrollTop = targetTop;
+        snapRoot.classList.remove("is-animating");
+      }
+    }
+
+    desktopScrollRaf = window.requestAnimationFrame(frame);
+  }
+
   function goToIndex(index, smooth) {
     if (index < 0 || index >= panels.length) return;
     activeIndex = index;
     setActiveSection(sectionIdAt(index));
-    edgeArmed = false;
-    edgeDir = 0;
+    pullPx = 0;
+    pulling = false;
+    clearPanelStretch();
     onChromeScroll();
 
     if (isPager()) {
       pagerAnimating = true;
-      snapTrack.style.transitionDuration = reduceMotion || smooth === false ? "0ms" : "550ms";
-      snapTrack.style.transform = "translate3d(0, " + (-100 * index) + "%, 0)";
+      if (snapTrack) {
+        snapTrack.classList.remove("is-dragging");
+        snapTrack.style.transitionDuration = reduceMotion || smooth === false ? "0ms" : "550ms";
+        snapTrack.style.transform = baseTrackTranslate(index);
+      }
       window.setTimeout(function () {
         pagerAnimating = false;
       }, reduceMotion || smooth === false ? 0 : 560);
       return;
     }
 
-    if (!snapRoot) return;
+    if (!snapRoot || !panels[index]) return;
     var top = panels[index].offsetTop;
-    if (typeof snapRoot.scrollTo === "function") {
-      snapRoot.scrollTo({ top: top, behavior: reduceMotion || smooth === false ? "auto" : "smooth" });
-    } else {
+    if (smooth === false || reduceMotion) {
+      snapRoot.classList.remove("is-animating");
       snapRoot.scrollTop = top;
+      return;
     }
+    animateDesktopScroll(top);
   }
 
   function enablePagerMode(on) {
     if (!snapRoot || !snapTrack) return;
     snapRoot.classList.toggle("is-pager", on);
+    snapRoot.classList.remove("is-animating");
     if (on) {
-      snapTrack.style.transform = "translate3d(0, " + (-100 * activeIndex) + "%, 0)";
-      panels.forEach(function (panel, i) {
+      snapTrack.style.transitionDuration = "0ms";
+      snapTrack.style.transform = baseTrackTranslate(activeIndex);
+      panels.forEach(function (panel) {
         panel.scrollTop = 0;
-        panel.style.transform = "";
       });
+      clearPanelStretch();
     } else {
+      snapTrack.classList.remove("is-dragging");
       snapTrack.style.transform = "";
       snapTrack.style.transitionDuration = "";
-      // Sync native scroll position to active panel
+      clearPanelStretch();
       if (panels[activeIndex]) {
         snapRoot.scrollTop = panels[activeIndex].offsetTop;
       }
@@ -220,27 +343,8 @@
     onChromeScroll();
   }
 
-  function requestSectionChange(dir) {
-    if (pagerAnimating) return;
-    if (edgeArmed && edgeDir === dir) {
-      goToIndex(activeIndex + dir, true);
-      return;
-    }
-    edgeArmed = true;
-    edgeDir = dir;
-  }
-
-  function handlePagerGesture(dir, intensity) {
-    if (!dir || pagerAnimating) return;
-    var panel = currentPanel();
-    if (panelCanScroll(panel, dir)) {
-      edgeArmed = false;
-      edgeDir = 0;
-      return false;
-    }
-    if (intensity < 28) return true;
-    requestSectionChange(dir);
-    return true;
+  function commitThreshold() {
+    return Math.min(92, window.innerHeight * 0.14);
   }
 
   if (snapRoot && panels.length) {
@@ -249,10 +353,15 @@
       function (event) {
         if (!isPager() || event.touches.length !== 1) return;
         if (event.target.closest && event.target.closest("[data-process-carousel]")) return;
+        if (pagerAnimating) return;
         touchActive = true;
-        gestureConsumed = false;
+        pulling = false;
+        pullPx = 0;
         touchStartY = event.touches[0].clientY;
         touchStartX = event.touches[0].clientX;
+        touchLastY = touchStartY;
+        touchLastT = performance.now();
+        touchVelocity = 0;
       },
       { passive: true }
     );
@@ -262,23 +371,41 @@
       function (event) {
         if (!isPager() || !touchActive || event.touches.length !== 1) return;
         if (event.target.closest && event.target.closest("[data-process-carousel]")) return;
-        var dy = touchStartY - event.touches[0].clientY;
-        var dx = touchStartX - event.touches[0].clientX;
-        if (Math.abs(dx) > Math.abs(dy)) return;
+        if (pagerAnimating) return;
+
+        var y = event.touches[0].clientY;
+        var x = event.touches[0].clientX;
+        var dy = touchStartY - y;
+        var dx = touchStartX - x;
+        if (Math.abs(dx) > Math.abs(dy) && !pulling) return;
+
+        var now = performance.now();
+        var dt = Math.max(1, now - touchLastT);
+        touchVelocity = (touchLastY - y) / dt;
+        touchLastY = y;
+        touchLastT = now;
 
         var dir = dy > 0 ? 1 : dy < 0 ? -1 : 0;
         var panel = currentPanel();
         if (!dir) return;
 
-        if (panelCanScroll(panel, dir)) {
-          edgeArmed = false;
-          edgeDir = 0;
+        if (!pulling && panelCanScroll(panel, dir)) {
           return;
         }
 
-        // At edge: absorb move so a strong flick doesn't free-scroll into the next panel
+        // At edge / full-screen panel: rubber-band toward next/prev
+        if (!atPanelEdge(panel, dir) && !pulling) return;
+        if (activeIndex + dir < 0 || activeIndex + dir >= panels.length) {
+          // Soft resistance at ends
+          if (event.cancelable) event.preventDefault();
+          applyPullVisual(dir, dy * 0.35);
+          pulling = true;
+          return;
+        }
+
         if (event.cancelable) event.preventDefault();
-        gestureConsumed = true;
+        pulling = true;
+        applyPullVisual(dir, dy);
       },
       { passive: false }
     );
@@ -288,19 +415,44 @@
       function (event) {
         if (!isPager() || !touchActive) return;
         touchActive = false;
-        if (event.target.closest && event.target.closest("[data-process-carousel]")) return;
+        if (event.target.closest && event.target.closest("[data-process-carousel]")) {
+          settlePull(0);
+          return;
+        }
+
+        if (!pulling) {
+          clearPanelStretch();
+          return;
+        }
+
         var touch = event.changedTouches[0];
-        if (!touch) return;
-        var dy = touchStartY - touch.clientY;
-        var dx = touchStartX - touch.clientX;
-        if (Math.abs(dx) > Math.abs(dy)) return;
-        var dir = dy > 12 ? 1 : dy < -12 ? -1 : 0;
-        if (!dir) return;
-        handlePagerGesture(dir, Math.abs(dy));
+        var dy = touch ? touchStartY - touch.clientY : pullPx / 0.42;
+        var dir = dy > 0 ? 1 : dy < 0 ? -1 : 0;
+        var distance = Math.abs(dy);
+        var flick = Math.abs(touchVelocity) > 0.55;
+        var shouldCommit =
+          dir &&
+          activeIndex + dir >= 0 &&
+          activeIndex + dir < panels.length &&
+          (distance >= commitThreshold() || (flick && distance > 36));
+
+        settlePull(shouldCommit ? dir : 0);
       },
       { passive: true }
     );
 
+    snapRoot.addEventListener(
+      "touchcancel",
+      function () {
+        if (!isPager()) return;
+        touchActive = false;
+        settlePull(0);
+      },
+      { passive: true }
+    );
+
+    // Desktop/trackpad wheel while testing mobile width in DevTools
+    var wheelLockUntil = 0;
     snapRoot.addEventListener(
       "wheel",
       function (event) {
@@ -308,14 +460,13 @@
         var dir = event.deltaY > 0 ? 1 : event.deltaY < 0 ? -1 : 0;
         if (!dir) return;
         var panel = currentPanel();
-        if (panelCanScroll(panel, dir)) {
-          edgeArmed = false;
-          edgeDir = 0;
-          return;
-        }
+        if (panelCanScroll(panel, dir)) return;
         event.preventDefault();
-        if (Math.abs(event.deltaY) < 10) return;
-        requestSectionChange(dir);
+        if (pagerAnimating || performance.now() < wheelLockUntil) return;
+        if (Math.abs(event.deltaY) < 8) return;
+        if (activeIndex + dir < 0 || activeIndex + dir >= panels.length) return;
+        wheelLockUntil = performance.now() + 700;
+        goToIndex(activeIndex + dir, true);
       },
       { passive: false }
     );
@@ -355,7 +506,7 @@
     });
   });
 
-  if (snapRoot && !mobileQuery.matches) {
+  if (snapRoot) {
     snapRoot.addEventListener("scroll", onChromeScroll, { passive: true });
   }
   onChromeScroll();
@@ -363,7 +514,7 @@
   if (panels.length && "IntersectionObserver" in window) {
     var sectionObserver = new IntersectionObserver(
       function (entries) {
-        if (isPager()) return;
+        if (isPager() || snapRoot.classList.contains("is-animating")) return;
         var visible = entries
           .filter(function (entry) {
             return entry.isIntersecting;
